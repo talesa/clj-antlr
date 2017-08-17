@@ -5,7 +5,9 @@
            (org.antlr.v4.runtime ParserRuleContext
                                  Parser
                                  Token
-                                 CommonTokenStream)))
+                                 CommonTokenStream
+                                 AltLabelTextProvider)
+           (org.antlr.v4.tool Grammar)))
 
 ;(defprotocol Sexpr
 ;  "Coerces trees to hiccup-style structures."
@@ -20,10 +22,8 @@
 ;                     (doall (map #(sexpr % p) (c/children t))))))
 
 (defn- sexpr-head
-  [^ParserRuleContext t ^Parser p]
-  (->> (.getRuleIndex ^ParserRuleContext t)
-       (c/parser-rule-name p)
-       c/fast-keyword))
+  [^ParserRuleContext t ^Parser p ^Grammar g]
+  (c/fast-keyword (.getText (AltLabelTextProvider. p g) t)))
 
 (defn- maybe-error-node
   [^ParserRuleContext t node]
@@ -47,10 +47,10 @@
   [^ParseTree t]
   (.getText t))
 
-(defn sexpr [^ParseTree t ^Parser p]
+(defn sexpr [^ParseTree t ^Parser p ^Grammar g]
   (if (instance? ParserRuleContext t)
-    (->> (mapv #(sexpr % p) (c/children t))
-         (cons (sexpr-head t p))
+    (->> (mapv #(sexpr % p g) (c/children t))
+         (cons (sexpr-head t p g))
          (maybe-error-node t)
          (attach-positional-metadata t))
     (literal->sexpr t)))
@@ -73,5 +73,5 @@
 
   (:json (:object \"{\" (:pair \"age\" \":\" (:value \"53\"))))"
   [m]
-  (vary-meta (sexpr (:tree m) (:parser m))
+  (vary-meta (sexpr (:tree m) (:parser m) (:grammar m))
              assoc :errors (:errors m)))

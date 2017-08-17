@@ -6,7 +6,8 @@
   (:import (java.lang ThreadLocal)
            (org.antlr.v4 Tool)
            (org.antlr.v4.tool LexerGrammar
-                              Grammar)
+                              Grammar
+                              GrammarParserInterpreter)
            (org.antlr.v4.parse ANTLRParser)
            (org.antlr.v4.runtime CommonTokenStream
                                  Lexer
@@ -56,7 +57,7 @@
 (defn parser-interpreter
   "Builds a new parser interpreter around a given grammar and lexer."
   [^Grammar grammar ^Lexer lexer]
-  (.createParserInterpreter grammar (common/tokens lexer)))
+  (.createGrammarParserInterpreter grammar (common/tokens lexer)))
 
 (defn reset-lexer-interpreter!
   "Prepares a lexer interpreter for a new run."
@@ -108,7 +109,7 @@
   "Creates a new single-threaded parser for a grammar."
   [^Grammar grammar]
   (let [^Lexer lexer (.createLexerInterpreter grammar (common/input-stream ""))
-        parser       (.createParserInterpreter grammar (common/tokens lexer))]
+        parser       (.createGrammarParserInterpreter grammar (common/tokens lexer))]
      (SinglethreadedParser. grammar lexer parser)))
 
 ; Wrapper for using the singlethreaded parser in multiple threads.
@@ -153,9 +154,9 @@
 
          ; Create parser
          ^ParserInterpreter parser (doto
-                                     (.createParserInterpreter grammar tokens)
-                                     (.removeErrorListeners)
-                                     (.addErrorListener error-listener))]
+                                    (.createGrammarParserInterpreter grammar tokens)
+                                    (.removeErrorListeners)
+                                    (.addErrorListener error-listener))]
 
      ; Parse
      (let [tree (.parse parser rule)]
@@ -167,4 +168,5 @@
        {:tree   tree
         :tokens tokens
         :errors @error-listener
-        :parser parser}))))
+        :parser parser
+        :grammar grammar}))))
